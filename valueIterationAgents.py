@@ -191,4 +191,60 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        predecessors = dict()
+        
+        priorityQueue = util.PriorityQueue()
+        
+        states = self.mdp.getStates()
+        
+        # For each non-terminal state s, do:
+        for s in states:
+            
+            if not self.mdp.isTerminal(s):
+            
+                # Compute predecessors of all states
+                for possibleAction in self.mdp.getPossibleActions(s):
+                    for (nextState, prob) in self.mdp.getTransitionStatesAndProbs(s, possibleAction):
+                            
+                            if nextState in predecessors:
+                                predecessors[nextState].add(s)
+                            else:
+                                predecessors[nextState] = set([s])
+                
+                # Find the absolute value of the difference between the current value of
+                # s in self.values and the highest Q-value across all possible actions from s
+                bestAction = self.computeActionFromValues(s)
+                diff = abs(self.values[s] - self.getQValue(s, bestAction))
+                # Push s into the priority queue with priority -dif
+                priorityQueue.push(s, -diff)
+
+        # For iteration in 0, 1, 2, . . . , self.iterations - 1, do:
+        for _ in range(self.iterations):
+            
+            # If the priority queue is empty, then terminate
+            if priorityQueue.isEmpty():
+                return
+            
+            # Pop a state s off the priority queue
+            s = priorityQueue.pop()
+
+            # if it is not a terminal state
+            if not self.mdp.isTerminal(s):
+                
+                # Update s’s value (if it is not a terminal state) in self.values
+                bestAction = self.computeActionFromValues(s)
+                self.values[s] = self.computeQValueFromValues(s, bestAction)
+
+            # For each predecessor p of s, do:
+            for p in predecessors[s]:
+
+                # Find the absolute value of the difference between the current value of p in 
+                # self.values and the highest Q-value across all possible actions from p
+                bestAction = self.computeActionFromValues(p)
+                diff = abs(self.values[p] - self.computeQValueFromValues(p, bestAction))
+                
+                # If diff > theta, push p into the priority queue with priority -diff
+                if diff > self.theta:
+                    # update method
+                    priorityQueue.update(p, -diff)
 
